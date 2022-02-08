@@ -1,8 +1,10 @@
 import numpy as np
-import tensorflow as tf
+
 import random as rn
 import os
+
 os.environ['PYTHONHASHSEED'] = '0'
+os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
 np.random.seed(42)
 rn.seed(12345)
@@ -11,7 +13,7 @@ from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.models import Model
 from keras.callbacks import TensorBoard
 from keras.models import Sequential
-from tensorflow.keras.optimizers import Adam
+from keras.optimizers import Adam
 import time
 import pandas as pd
 from keras.callbacks import TensorBoard
@@ -154,12 +156,12 @@ def Learn_NN_5L_(TrainDir, ValidDir, RezDir,NN_Name,Epochs=30, window_size=25, w
     model.compile(loss='categorical_crossentropy', optimizer=Adam(), metrics=['accuracy'])
     csv_logger = CSVLogger(os.path.join(RezDir, f'{NN_Name}_training__log.csv'), separator=';', append=False)
 
-    
+    print("record best")
     checkpoint = ModelCheckpoint(filepath=os.path.join(RezDir, f'{NN_Name}_Best.hdf5'),
-                 monitor='val_accuracy',
+                 monitor='val_acc',
                  save_best_only=True,
                  mode='max',
-                 verbose=1)
+                 verbose=0)
     model.fit(X_Train, Y_Train,
           batch_size = 64,
           epochs = Epochs,shuffle=True,
