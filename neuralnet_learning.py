@@ -8,10 +8,10 @@ learningPath = os.path.join(dataPath, 'learning_data')
 trainPath = os.path.join(learningPath, 'train')
 testPath = os.path.join(learningPath, 'test')
 validPath = os.path.join(learningPath, 'valid')
-learningResultPath = os.path.join(learningPath, 'result5')
+learningResultPath = os.path.join(learningPath, 'result_auto')
 testResultPath = os.path.join(learningResultPath, 'test')
 
-epochsNumber = 50
+epochsNumber = 500
 neuralNetName = f'NN_L{epochsNumber}'
 
 if input('Learn neuralnet? y/n\n') == 'y':
