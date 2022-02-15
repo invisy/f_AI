@@ -11,15 +11,20 @@ from scipy import signal
 from shutil import copyfile
 import random
 import multiprocessing
+import math
+from pydub import AudioSegment, exceptions
+from pydub.exceptions import CouldntDecodeError
+
+CLASSIFIED_SAMPLE_RATE = 8000
+CLASSIFIED_SAMPLE_WIDTH = 2
 
 def Convert_To_06(samples):
-    sample_rate=8000
+    sample_rate = CLASSIFIED_SAMPLE_RATE
     WindowSize = 40
     LeftSeek = 300
     RezFileLength = 0.6
 
-
-    if  len(samples) <= int(0.6*sample_rate):
+    if len(samples) <= int(0.6*sample_rate):
         return samples
 
     Samples_SUM = np.arange(len(samples), dtype='float64')
@@ -82,63 +87,70 @@ def Convert_To_06(samples):
     StartIndex = int(StartIndex)
     for i in range(int(RezFileLength * sample_rate)):
         ResultS[i] = samples[i + StartIndex]
-    return  ResultS
+    return ResultS
 
-def ConvertTo_8K_Single(SourceDir, TargetDirectory, Prefics, ClassType, wfile):
-    #  -------Convert to 8K and Raname and Save File----------------------------------------
-    curerentFile = os.path.join(SourceDir, wfile)
-    sample_rate, samples = wavfile.read(curerentFile)
+def ConvertToWav(SourceDir, TargetDirectory, Prefics, ClassType, SoundFileName):
+    #  -------Convert, Raname and Save File----------------------------------------
 
-    i = wfile.find(".wav")
-    FileName = wfile[:i]
-    FileName = FileName.replace("_nohash_", "")
+    soundFilePath = os.path.join(SourceDir, SoundFileName)
+    try:
+        soundFile = AudioSegment.from_file(soundFilePath)
+        sampleWidth = soundFile.sample_width
+        sampleRate = soundFile.frame_rate
+        sampleChannelsNumber = soundFile.channels
 
-    if sample_rate == 16000:
-        lennewarray = int(len(samples) / 2)
-        f = signal.resample(samples, lennewarray)
-        Samples_1 = np.arange(lennewarray, dtype=samples.dtype)
-        for i in range(lennewarray):
-            Samples_1[i] = int(f[i])
-        curerentFile = os.path.join(TargetDirectory, f'{Prefics}_{ClassType}.wav')
-        Samples_final = Convert_To_06(Samples_1)
-        wavfile.write(curerentFile, 8000, Samples_final)
+        if sampleWidth != CLASSIFIED_SAMPLE_WIDTH:
+            soundFile = soundFile.set_sample_width(2)
+        if sampleRate != CLASSIFIED_SAMPLE_RATE:
+            soundFile = soundFile.set_frame_rate(CLASSIFIED_SAMPLE_RATE)
+        if sampleChannelsNumber != 1:
+            soundFile = soundFile.set_channels(1)
 
-    if sample_rate == 8000:
-        curerentFile = os.path.join(TargetDirectory, f'{Prefics}_{ClassType}.wav')
-        Samples_final = Convert_To_06(samples)
-        wavfile.write(curerentFile, sample_rate, Samples_final)
+        samples = soundFile.get_array_of_samples()
+        numpySamples = np.array(samples)
+        Samples_final = Convert_To_06(numpySamples)             #TODO rewrite function
 
-def ConvertTo_8K_Range(SourceDir, TargetDirectory, Prefics, ClassType, wavFiles, fromIndex, toIndex):
+        destinationPath = os.path.join(TargetDirectory, f'{Prefics}_{ClassType}.wav')
+
+        wavfile.write(destinationPath, CLASSIFIED_SAMPLE_RATE, Samples_final)
+    except CouldntDecodeError:
+        print(f'File {SoundFileName} can`t be converted -- skipping!')
+
+def ConvertToWavRange(SourceDir, TargetDirectory, Prefics, ClassType, wavFiles, fromIndex, toIndex):
     for fileIndex in range(fromIndex, toIndex):
-        ConvertTo_8K_Single(SourceDir, TargetDirectory, f'{Prefics}-{fileIndex}', ClassType, wavFiles[fileIndex])
+        ConvertToWav(SourceDir, TargetDirectory, f'{Prefics}-{fileIndex}', ClassType, wavFiles[fileIndex])
 
-
-def ConvertTo_8K(SourceDir, TargetDirectory, Prefics, ClassType):
+def ConvertToWavFromFolder(SourceDir, TargetDirectory, Prefics, ClassType):
     #  -------Load Files----------------------------------------
-    wavFiles = []
+    soundFiles = []
     for d, dirs, files in os.walk(SourceDir):
         for file in files:
-            if file.endswith(".wav"):
-                wavFiles.append(file)
-    #  -------Convert to 8K and Raname and Save Files----------------------------------------
+            soundFiles.append(file)
+    #  -------Convert, Raname and Save Files----------------------------------------
     threads = list()
     cpuCount = multiprocessing.cpu_count()
-    wavFilesCount = len(wavFiles)
-    wavFilesCoreCount = int(wavFilesCount/cpuCount) + 1
+    soundFilesCount = len(soundFiles)
+
+    if(soundFilesCount == 0):
+        return
+
+    if soundFilesCount < cpuCount:
+        cpuCount = 1
+
+    soundFilesPerCoreCount = math.ceil(soundFilesCount/cpuCount)
 
     for cpuIndex in range(0, cpuCount):
-        fromIndex = cpuIndex*wavFilesCoreCount
-        toIndex = min((cpuIndex+1)*wavFilesCoreCount, wavFilesCount)
-
-        t = multiprocessing.Process(target=ConvertTo_8K_Range,
-                                    args = (SourceDir, TargetDirectory, Prefics, ClassType, wavFiles, fromIndex, toIndex))
+        fromIndex = min(cpuIndex*soundFilesPerCoreCount, soundFilesCount)
+        toIndex = min((cpuIndex+1)*soundFilesPerCoreCount, soundFilesCount)
+        if(fromIndex != toIndex):
+            t = multiprocessing.Process(target=ConvertToWavRange,
+                                        args = (SourceDir, TargetDirectory, Prefics, ClassType, soundFiles, fromIndex, toIndex))
         t.start()
         threads.append(t)
     
     for t in threads:
         t.join()
         
-
 def Balance_Sample(SourceDirectory, BalancedSampleDirectory):
     Class1_Files = []
     Class2_Files = []
