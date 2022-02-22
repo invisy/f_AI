@@ -10,13 +10,13 @@ learningPath = os.path.join(dataSetPath, 'split_data')
 trainPath = os.path.join(learningPath, 'train')
 testPath = os.path.join(learningPath, 'test')
 validPath = os.path.join(learningPath, 'valid')
-learningResultPath = os.path.join(neuralnetsPath, 'nn_autoEpochsNumber')
+learningResultPath = os.path.join(neuralnetsPath, 'nn_50_2')
 testResultPath = os.path.join(learningResultPath, 'learning_test')
 
 blindtTestClassifiedPath = os.path.join(dataPath, 'blind_data', 'classified_data')
 blindTestResultPath = os.path.join(learningResultPath, 'blind_test')
 
-epochsNumber = 999
+epochsNumber = 50
 neuralNetName = f'NN_L{epochsNumber}'
 
 if input('Learn neuralnet? y/n\n') == 'y':

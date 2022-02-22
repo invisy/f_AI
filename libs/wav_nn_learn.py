@@ -146,7 +146,7 @@ def Learn_NN_5L_(TrainDir, ValidDir, RezDir,NN_Name,Epochs=30, window_size=25, w
 #     model.add(Activation('relu'))
 #     model.add(Dense(30))
 #     model.add(Activation('relu'))
-    model.add(Dense(15))
+    model.add(Dense(25))
     model.add(Activation('relu'))
     model.add(Dense(10))
     model.add(Activation('relu'))
@@ -156,8 +156,8 @@ def Learn_NN_5L_(TrainDir, ValidDir, RezDir,NN_Name,Epochs=30, window_size=25, w
     model.compile(loss='categorical_crossentropy', optimizer=Adam(), metrics=['accuracy'])
     csv_logger = CSVLogger(os.path.join(RezDir, f'{NN_Name}_training__log.csv'), separator=';', append=False)
 
-    early_stop = EarlyStopping(monitor='val_acc', min_delta=0.001,
-                           patience=10, verbose=1, mode='auto')
+    #early_stop = EarlyStopping(monitor='val_acc', min_delta=0.001,
+    #                        patience=10, verbose=1, mode='auto')
     checkpoint = ModelCheckpoint(filepath=os.path.join(RezDir, f'{NN_Name}_Best.hdf5'),
                  monitor='val_acc',
                  save_best_only=True,
@@ -167,7 +167,8 @@ def Learn_NN_5L_(TrainDir, ValidDir, RezDir,NN_Name,Epochs=30, window_size=25, w
           batch_size = 64,
           epochs = Epochs,shuffle=True,
           validation_data=(X_val1, y_val1),
-          callbacks=[early_stop, checkpoint, csv_logger])
+          #callbacks=[early_stop, checkpoint, csv_logger])
+          callbacks=[checkpoint, csv_logger])
     model.save(filepath=os.path.join(RezDir, f'{NN_Name}_Final.hdf5'))
 
 def TestNN_(NetName, SourceDir, TargetFile, window_size):
