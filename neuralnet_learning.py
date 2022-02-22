@@ -10,7 +10,7 @@ learningPath = os.path.join(dataSetPath, 'split_data')
 trainPath = os.path.join(learningPath, 'train')
 testPath = os.path.join(learningPath, 'test')
 validPath = os.path.join(learningPath, 'valid')
-learningResultPath = os.path.join(neuralnetsPath, 'nn_50_3')
+learningResultPath = os.path.join(neuralnetsPath, 'nn_50_4')
 testResultPath = os.path.join(learningResultPath, 'learning_test')
 
 blindtTestClassifiedPath = os.path.join(dataPath, 'blind_data', 'classified_data')

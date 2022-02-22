@@ -148,7 +148,7 @@ def Learn_NN_5L_(TrainDir, ValidDir, RezDir,NN_Name,Epochs=30, window_size=25, w
 #     model.add(Activation('relu'))
     model.add(Dense(30))
     model.add(Activation('relu'))
-    model.add(Dense(10))
+    model.add(Dense(15))
     model.add(Activation('relu'))
     model.add(Dense(3))
     model.add(Activation('softmax'))
