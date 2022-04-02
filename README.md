@@ -4,8 +4,7 @@
 [Install dependencies](https://github.com/invisy/f_AI/new/main#install-dependencies)
 <br>
 [Prepare data](https://github.com/invisy/f_AI/new/main#install-dependencies)
-<br>
-[Install dependencies](https://github.com/invisy/f_AI/new/main#install-dependencies)
+
 
 ## Install dependencies
 
