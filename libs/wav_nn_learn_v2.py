@@ -14,7 +14,6 @@ from keras.models import Model
 from keras.callbacks import TensorBoard, EarlyStopping
 from keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
-#from keras.optimizers import Adam
 import time
 import pandas as pd
 from keras.callbacks import TensorBoard
@@ -27,43 +26,45 @@ from scipy import signal
 from scipy.io import wavfile
 import random
 
+
 def Load_Wav_(WorkDir):
     Input_Files = []
-    Source_Samples= []
+    Source_Samples = []
     for d, dirs, files in os.walk(WorkDir):
         for file in files:
             Input_Files.append(file)
-    GFile  = []
+    GFile = []
     for file in Input_Files:
-            if file.endswith(".wav"):
-                sample_rate, samples = wavfile.read(os.path.join(WorkDir, file))
-                if sample_rate != 8000:
-                    continue
-                if max(abs(samples)) < 410:
-                    continue
-                if len(samples) < int(0.1 * sample_rate):
-                    continue
-                GFile.append(file)
-#                 samples = Convert_To_06(samples)
-                Source_Samples.append(samples)
+        if file.endswith(".wav"):
+            sample_rate, samples = wavfile.read(os.path.join(WorkDir, file))
+            if sample_rate != 8000:
+                continue
+            if max(abs(samples)) < 410:
+                continue
+            if len(samples) < int(0.1 * sample_rate):
+                continue
+            GFile.append(file)
+            #                 samples = Convert_To_06(samples)
+            Source_Samples.append(samples)
 
-    return  Source_Samples, GFile
+    return Source_Samples, GFile
+
 
 def Add_Zero(specgram, TargetColumnNumber, StartSignalPosition):
-
     if len(specgram[0]) >= TargetColumnNumber:
-         return specgram
+        return specgram
 
     full_array = np.zeros((len(specgram), TargetColumnNumber))
-    full_array[:, :len(specgram[0])-TargetColumnNumber] = specgram
+    full_array[:, :len(specgram[0]) - TargetColumnNumber] = specgram
     if StartSignalPosition == 0:
         full_array[:, :len(specgram[0]) - TargetColumnNumber] = specgram
     elif StartSignalPosition == TargetColumnNumber - len(specgram[0]):
         full_array[:, StartSignalPosition:] = specgram
     else:
-        full_array[:, StartSignalPosition:StartSignalPosition+len(specgram[0]) - TargetColumnNumber] = specgram
+        full_array[:, StartSignalPosition:StartSignalPosition + len(specgram[0]) - TargetColumnNumber] = specgram
 
     return full_array
+
 
 def log_specgram(audio, window_size, sample_rate=8000,
                  eps=1e-10, windoe_fuction='hann'):
@@ -76,6 +77,7 @@ def log_specgram(audio, window_size, sample_rate=8000,
                                             noverlap=noverlap,
                                             detrend=False)
     return freqs, times, np.log(spec.astype(np.float32) + eps)
+
 
 def Convert_Wav_To_specgram(SamplesList, Input_Files, window_size, windoe_fuction):
     samples = np.zeros(int(0.6 * 8000))
@@ -95,81 +97,89 @@ def Convert_Wav_To_specgram(SamplesList, Input_Files, window_size, windoe_fuctio
             y.append([1, 0, 0])
         else:
             y.append([0, 1, 0])
-        
- 
+
     x = np.array(x)
     x = x.reshape(tuple(list(x.shape) + [1]))
     y = np.array(y)
     return x, y
 
+
 def RandomozeArrays(SourceArrayX, SourceArrayY):
-    TargetArrayX=[]
-    TargetArrayY=[]
+    TargetArrayX = []
+    TargetArrayY = []
     while 0 < len(SourceArrayX):
         Index = random.randint(0, len(SourceArrayX) - 1)
         TargetArrayX.append(SourceArrayX[Index])
         del SourceArrayX[Index]
         TargetArrayY.append(SourceArrayY[Index])
-        del SourceArrayY[Index]      
-        
-    return TargetArrayX,TargetArrayY
+        del SourceArrayY[Index]
 
-def Learn_NN_5L_(TrainDir, ValidDir, RezDir,NN_Name,Epochs=30, window_size=25, windoe_fuction='hann'):
-    Source_Samples, Input_Files= Load_Wav_(TrainDir)
+    return TargetArrayX, TargetArrayY
+
+
+# NN_50E_3L_5_4_3.csv
+def Learn_NN_5L_(TrainDir, ValidDir, RezDir, NN_Name, neuronNumbersArray, Epochs=30, window_size=25,
+                 windoe_fuction='hann'):
+    logsDir = os.path.join(RezDir, 'logs')
+    if not os.path.isdir(logsDir):
+        os.makedirs(logsDir)
+
+    Source_Samples, Input_Files = Load_Wav_(TrainDir)
     print('end load train data', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
     Source_Samples, Input_Files = RandomozeArrays(Source_Samples, Input_Files)
     print('end Randomize train data', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
-    
-    
+
     X_Train, Y_Train = Convert_Wav_To_specgram(SamplesList=Source_Samples, Input_Files=Input_Files,
-                                           window_size=window_size, windoe_fuction=windoe_fuction)
+                                               window_size=window_size, windoe_fuction=windoe_fuction)
     print('end convert train data', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
-     
+
     Source_Samples, Input_Files = Load_Wav_(ValidDir)
     print('end load valid data', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
 
     X_val1, y_val1 = Convert_Wav_To_specgram(SamplesList=Source_Samples, Input_Files=Input_Files,
-                                                     window_size=window_size, windoe_fuction=windoe_fuction)
+                                             window_size=window_size, windoe_fuction=windoe_fuction)
     print('end convert valid data', time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
 
     input_shape = (X_Train.shape[1], X_Train.shape[2], 1)
     model = Sequential()
 
-    model.add(BatchNormalization(input_shape = input_shape))
-    model.add(Convolution2D(48, (5, 5), strides = (3, 3), padding = 'same',input_shape = input_shape))
+    model.add(BatchNormalization(input_shape=input_shape))
+    model.add(Convolution2D(48, (5, 5), strides=(3, 3), padding='same', input_shape=input_shape))
     model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2,2), padding = 'same'))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same'))
     model.add(BatchNormalization())
-    model.add(Convolution2D(40, (3, 3), strides = (2, 2), padding = 'same'))
+    model.add(Convolution2D(40, (3, 3), strides=(2, 2), padding='same'))
     model.add(Activation('relu'))
     model.add(Flatten())
-#     model.add(Dense(45))
-#     model.add(Activation('relu'))
-#     model.add(Dense(30))
-#     model.add(Activation('relu'))
-    model.add(Dense(15))
-    model.add(Activation('relu'))
-    model.add(Dense(10))
-    model.add(Activation('relu'))
+    #     model.add(Dense(45))
+    #     model.add(Activation('relu'))
+
+    for layerNumber in range(0, len(neuronNumbersArray)):
+        model.add(Dense(neuronNumbersArray[layerNumber]))
+        model.add(Activation('relu'))
     model.add(Dense(3))
     model.add(Activation('softmax'))
 
+    print(f'Layers={len(neuronNumbersArray)}, Neurons={neuronNumbersArray}, Epochs={Epochs}')
     model.compile(loss='categorical_crossentropy', optimizer=Adam(), metrics=['accuracy'])
-    csv_logger = CSVLogger(os.path.join(RezDir, f'{NN_Name}_training__log.csv'), separator=';', append=False)
+    csv_logger = CSVLogger(os.path.join(RezDir, f'{logsDir}\\{NN_Name}_training__log.csv'), separator=';', append=False)
 
-    #early_stop = EarlyStopping(monitor='val_accuracy', min_delta=0.001,
-                           #patience=10, verbose=1, mode='auto')
+    # early_stop = EarlyStopping(monitor='val_acc', min_delta=0.001,
+    #                        patience=10, verbose=1, mode='auto')
     checkpoint = ModelCheckpoint(filepath=os.path.join(RezDir, f'{NN_Name}_Best.hdf5'),
-                 monitor='val_accuracy',
-                 save_best_only=True,
-                 mode='max',
-                 verbose=0)
+                                 monitor='val_accuracy',
+                                 save_best_only=True,
+                                 mode='max',
+                                 verbose=0)
     model.fit(X_Train, Y_Train,
-          batch_size = 64,
-          epochs = Epochs,shuffle=True,
-          validation_data=(X_val1, y_val1),
-          callbacks=[checkpoint, csv_logger])
+              batch_size=64,
+              epochs=Epochs, shuffle=True,
+              validation_data=(X_val1, y_val1),
+              # callbacks=[early_stop, checkpoint, csv_logger])
+              callbacks=[checkpoint, csv_logger])
+
     model.save(filepath=os.path.join(RezDir, f'{NN_Name}_Final.hdf5'))
+
 
 def TestNN_(NetName, SourceDir, TargetFile, window_size):
     Input_Files = []
@@ -179,58 +189,61 @@ def TestNN_(NetName, SourceDir, TargetFile, window_size):
             if file.endswith(".wav"):
                 sample_rate, samples = wavfile.read(os.path.join(SourceDir, file))
                 if sample_rate != 8000:
-                     continue
+                    continue
                 if max(abs(samples)) < 410:
                     continue
                 if len(samples) < int(0.1 * sample_rate):
                     continue
                 Input_Files.append(file)
-#                 samples = Convert_To_06(samples)
+                #                 samples = Convert_To_06(samples)
                 Source_Samples.append(samples)
 
     x, y = Convert_Wav_To_specgram(SamplesList=Source_Samples, Input_Files=Input_Files,
-                                             window_size=window_size, windoe_fuction='hann')
+                                   window_size=window_size, windoe_fuction='hann')
 
     new_model = load_model(NetName)
     pred = new_model.predict(x)
-    f = open(TargetFile+'_FilesReport.csv', 'w', newline='\n')
+    f = open(TargetFile + '_FilesReport.csv', 'w', newline='\n')
     f.write('sep=,\n')
-    f.write('NetName = %s, Files %s \n'%(NetName,SourceDir))
+    f.write('NetName = %s, Files %s \n' % (NetName, SourceDir))
     f.write('File Name,Marked As,Recognized As,Cl 1,Cl 2,Cl 3, \n')
     CodeList = ['Cl 2', 'Cl 3', 'Cl 1']
-    SemplCount= [0,0,0]
-    StatRez = [[0,0,0],[0,0,0],[0,0,0]]
+    SemplCount = [0, 0, 0]
+    StatRez = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
     for i in range(len(pred)):
         YY = list(y[i])
         Rez = list(pred[i])
         TrueCalss = YY.index(max(YY))
         NNClass = Rez.index(max(Rez))
-        SemplCount[TrueCalss] +=1
+        SemplCount[TrueCalss] += 1
         StatRez[TrueCalss][NNClass] += 1
-        f.write( '%s,%s,%s, %f , %f, %f,\n' % (Input_Files[i], CodeList[TrueCalss], CodeList[NNClass], pred[i][2], pred[i][0], pred[i][1]))
+        f.write('%s,%s,%s, %f , %f, %f,\n' % (
+        Input_Files[i], CodeList[TrueCalss], CodeList[NNClass], pred[i][2], pred[i][0], pred[i][1]))
 
     f.close()
-    f = open(TargetFile+'_Report.csv', 'w', newline='\n')
+    f = open(TargetFile + '_Report.csv', 'w', newline='\n')
     f.write('sep=,\n')
-    f.write('NetName = %s, Files %s \n'%(NetName,SourceDir))
+    f.write('NetName = %s, Files %s \n' % (NetName, SourceDir))
     f.write('Var,Cl 1,Cl 2,Cl 3, \n')
 
-    f.write('Count,%s,%s, %s ,\n' % (SemplCount[2],SemplCount[0], SemplCount[1]))
+    f.write('Count,%s,%s, %s ,\n' % (SemplCount[2], SemplCount[0], SemplCount[1]))
     f.write('Cl 1 As,%s,%s, %s ,\n' % (StatRez[2][2], StatRez[2][0], StatRez[2][1]))
     f.write('Cl 2 As,%s,%s, %s ,\n' % (StatRez[0][2], StatRez[0][0], StatRez[0][1]))
     f.write('Cl 3 As,%s,%s, %s ,\n' % (StatRez[1][2], StatRez[1][0], StatRez[1][1]))
-    trueclass =100.0* (StatRez[2][2] + StatRez[0][0] + StatRez[1][1])/ float( sum(SemplCount))
-    
+    trueclass = 100.0 * (StatRez[2][2] + StatRez[0][0] + StatRez[1][1]) / float(sum(SemplCount))
+
     for i in range(len(SemplCount)):
         for k in range(len(SemplCount)):
             if SemplCount[i] > 0:
-                StatRez[i][k]=100.0*float(StatRez[i][k])/SemplCount[i]
+                StatRez[i][k] = 100.0 * float(StatRez[i][k]) / SemplCount[i]
     f.write('Cl 1 As %%,%.3f%%,%.3f%%, %.3f%% ,\n' % (StatRez[2][2], StatRez[2][0], StatRez[2][1]))
-    f.write('Cl 2  As %%,%.3f%%,%.3f%%, %.3f%% ,\n' % (StatRez[0][2], StatRez[0][0], StatRez[0][1]))
+    f.write('Cl 2 As %%,%.3f%%,%.3f%%, %.3f%% ,\n' % (StatRez[0][2], StatRez[0][0], StatRez[0][1]))
     f.write('Cl 3 As %%,%.3f%%,%.3f%%, %.3f%% ,\n' % (StatRez[1][2], StatRez[1][0], StatRez[1][1]))
-    
+
     f.write(',\n')
-    
+
     f.write('Total acc. ,%.3f%% ,\n' % (trueclass))
 
     f.close()
+
+    return trueclass

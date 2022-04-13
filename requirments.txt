@@ -1,0 +1,7 @@
+sklearn
+numpy
+scipy
+matplotlib
+pandas
+pydub
+tensorflow-gpu
