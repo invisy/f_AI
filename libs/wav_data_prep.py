@@ -14,6 +14,7 @@ import multiprocessing
 import math
 from pydub import AudioSegment, exceptions
 from pydub.exceptions import CouldntDecodeError
+import configs.config as cfg
 
 CLASSIFIED_SAMPLE_RATE = 8000
 CLASSIFIED_SAMPLE_WIDTH = 2
@@ -110,6 +111,8 @@ def ConvertToWav(SourceDir, TargetDirectory, Prefics, ClassType, SoundFileName):
         numpySamples = np.array(samples)
         Samples_final = Convert_To_06(numpySamples)             #TODO rewrite function
 
+        with open(os.path.join(cfg.blindSourceDataPath, "files_crypted.txt"), "a") as filesCryptedTxt:
+            filesCryptedTxt.write(f'{SoundFileName} : {Prefics}_{ClassType}.wav\n')
         destinationPath = os.path.join(TargetDirectory, f'{Prefics}_{ClassType}.wav')
 
         wavfile.write(destinationPath, CLASSIFIED_SAMPLE_RATE, Samples_final)

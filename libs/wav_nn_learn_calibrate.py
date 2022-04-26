@@ -119,7 +119,7 @@ def RandomozeArrays(SourceArrayX, SourceArrayY):
 
 # NN_50E_3L_5_4_3.csv
 def Learn_NN_5L_(TrainDir, ValidDir, RezDir, NN_Name, neuronNumbersArray, Epochs=30, window_size=25,
-                 windoe_fuction='hann'):
+                 windoe_fuction='hann', bestOnly=True):
     logsDir = os.path.join(RezDir, 'logs')
     if not os.path.isdir(logsDir):
         os.makedirs(logsDir)
@@ -151,9 +151,6 @@ def Learn_NN_5L_(TrainDir, ValidDir, RezDir, NN_Name, neuronNumbersArray, Epochs
     model.add(Convolution2D(40, (3, 3), strides=(2, 2), padding='same'))
     model.add(Activation('relu'))
     model.add(Flatten())
-    #     model.add(Dense(45))
-    #     model.add(Activation('relu'))
-
     for layerNumber in range(0, len(neuronNumbersArray)):
         model.add(Dense(neuronNumbersArray[layerNumber]))
         model.add(Activation('relu'))
@@ -168,7 +165,7 @@ def Learn_NN_5L_(TrainDir, ValidDir, RezDir, NN_Name, neuronNumbersArray, Epochs
     #                        patience=10, verbose=1, mode='auto')
     checkpoint = ModelCheckpoint(filepath=os.path.join(RezDir, f'{NN_Name}_Best.hdf5'),
                                  monitor='val_accuracy',
-                                 save_best_only=True,
+                                 save_best_only=bestOnly,
                                  mode='max',
                                  verbose=0)
     model.fit(X_Train, Y_Train,

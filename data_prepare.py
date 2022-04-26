@@ -5,34 +5,37 @@ from os.path import isfile, join
 from libs.wav_data_prep import *
 import hashlib
 import shutil
-
-dataPath = os.path.join(os.path.dirname(__file__), 'data')
+import configs.config as cfg
 
 def ClassifySounds(sourcePath, classifiedPath, regenerate=False):
     if not os.path.isdir(classifiedPath) or regenerate:
         shutil.rmtree(classifiedPath, ignore_errors=True)
         os.makedirs(classifiedPath)
 
-        firstWord = "tree"
-        secondWord = "two"
+        filesCryptedTxt = open(os.path.join(sourcePath, "files_crypted.txt"), "w")
 
-        allDirectories = [dir for dir in listdir(sourcePath) if(isdir(join(sourcePath, dir)))]
-        othersExceptList = ["_background_noise_", firstWord, secondWord]
+        with open(os.path.join(sourcePath, "dirs_crypted.txt"), "w") as dirsCryptedTxt:
+            firstWord = "tree"
+            secondWord = "two"
 
-        ConvertToWavFromFolder(SourceDir=os.path.join(sourcePath, firstWord), TargetDirectory=classifiedPath, 
-                                            Prefics=hashlib.md5(firstWord.encode()).hexdigest(), ClassType='cl_1')
-        print(f'Finished classifying of cl_1 --- word: {firstWord}!')
+            allDirectories = [dir for dir in listdir(sourcePath) if(isdir(join(sourcePath, dir)))]
+            othersExceptList = ["_background_noise_", firstWord, secondWord]
 
-        ConvertToWavFromFolder(SourceDir=os.path.join(sourcePath, secondWord), TargetDirectory=classifiedPath, 
-                                            Prefics=hashlib.md5(secondWord.encode()).hexdigest(), ClassType='cl_2')
-        print(f'Finished classifying of cl_2 --- word: {secondWord}!')
+            ConvertToWavFromFolder(SourceDir=os.path.join(sourcePath, firstWord), TargetDirectory=classifiedPath, 
+                                                Prefics=hashlib.md5(firstWord.encode()).hexdigest(), ClassType='cl_1')
+            print(f'Finished classifying of cl_1 --- word: {firstWord}!')
 
-        for word in allDirectories:
-            if word not in othersExceptList:
-                ConvertToWavFromFolder(SourceDir=os.path.join(sourcePath, word), TargetDirectory=classifiedPath, 
-                                                    Prefics=hashlib.md5(word.encode()).hexdigest(), ClassType='cl_3')
-                print(f'Finished classifying of cl_3 --- word: {word}!')
-        print('Finished classifying of cl_3 --- all files!')
+            ConvertToWavFromFolder(SourceDir=os.path.join(sourcePath, secondWord), TargetDirectory=classifiedPath, 
+                                                Prefics=hashlib.md5(secondWord.encode()).hexdigest(), ClassType='cl_2')
+            print(f'Finished classifying of cl_2 --- word: {secondWord}!')
+
+            for word in allDirectories:
+                if word not in othersExceptList:
+                    ConvertToWavFromFolder(SourceDir=os.path.join(sourcePath, word), TargetDirectory=classifiedPath, 
+                                                        Prefics=hashlib.md5(word.encode()).hexdigest(), ClassType='cl_3')
+                    dirsCryptedTxt.write(f'{hashlib.md5(word.encode()).hexdigest()} : {word}\n')
+                    print(f'Finished classifying of cl_3 --- word: {word}!')
+            print('Finished classifying of cl_3 --- all files!')
 
 def BalanceClassifiedSounds(classifiedPath, balancedPath, regenerate=False):
     if os.path.isdir(balancedPath) and (not os.path.isdir(balancedPath) or regenerate):
@@ -54,27 +57,12 @@ def SplitBalancedSounds(balancedPath, splittedPath, trainPath, testPath, validPa
                             ValidPercent=0.1)
 
 def PrepareLearningData(regenerate = False):
-    dataSetPath = os.path.join(dataPath, 'learning_data')
-
-    sourceDataPath = os.path.join(dataSetPath, 'source_data')
-    classifiedPath = os.path.join(dataSetPath, 'classified_data')
-    balancedPath = os.path.join(dataSetPath, 'balanced_data')
-    splitDataPath = os.path.join(dataSetPath, 'split_data')
-
-    trainPath = os.path.join(splitDataPath, 'train')
-    testPath = os.path.join(splitDataPath, 'test')
-    validPath = os.path.join(splitDataPath, 'valid')
-
-    ClassifySounds(sourceDataPath, classifiedPath, regenerate)
-    BalanceClassifiedSounds(classifiedPath, balancedPath, regenerate)
-    SplitBalancedSounds(balancedPath, splitDataPath, trainPath, testPath, validPath, regenerate)
+    ClassifySounds(cfg.sourceDataPath, cfg.classifiedPath, regenerate)
+    BalanceClassifiedSounds(cfg.classifiedPath, cfg.balancedPath, regenerate)
+    SplitBalancedSounds(cfg.balancedPath, cfg.splitDataPath, cfg.trainPath, cfg.testPath, cfg.validPath, regenerate)
 
 def PrepareBlindTestData(regenerate = False): 
-    blindDataPath = os.path.join(dataPath, 'blind_data')
-    blindSourceDataPath = os.path.join(blindDataPath, 'source_data')
-    classifiedPath = os.path.join(blindDataPath, 'classified_data')
-
-    ClassifySounds(blindSourceDataPath, classifiedPath, regenerate)
+    ClassifySounds(cfg.blindSourceDataPath, cfg.blindClassifiedPath, regenerate)
 
 #-----------------------------------------------#
 
